@@ -36,4 +36,18 @@ describe 'Merchant Items API' do
       expect(item[:attributes][:merchant_id]).to eq(id)
     end
   end
+
+  describe 'sad paths' do
+    it 'will handle not having an merchant id' do
+
+      get "/api/v1/merchants/0/items"
+
+      item_merchant_json = JSON.parse(response.body, symbolize_names: true)
+
+      item_merchant = item_merchant_json[:data]
+
+      expect(response).to_not be_successful
+      expect(response.status).to eq(404)
+    end
+  end
 end
