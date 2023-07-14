@@ -115,6 +115,98 @@ describe 'Items API' do
 
     expect(response).to be_successful
     expect(Item.count).to eq(0)
-    expect{Item.find(item_1.id)}.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Item.find(item_1.id) }.to raise_error(ActiveRecord::RecordNotFound)
+  end
+
+  it 'can update an existing item record' do
+    merch = create(:merchant)
+    item_1 = create(:item, merchant_id: merch.id)
+    id = item_1.id
+
+    previous_item_name = Item.last.name
+    previous_item_unit_price = Item.last.unit_price
+    previous_item_id = Item.last.merchant_id
+
+    item_params = {
+      name: 'Barbellz',
+      description: '5.5kg weights to lift for exercise',
+      unit_price: 3500,
+      merchant_id: merch.id
+      }
+
+    headerz = { 'CONTENT_TYPE' => 'application/json' }
+
+    put "/api/v1/items/#{id}", headers: headerz, params: JSON.generate(item: item_params)
+
+    expect(response).to be_successful
+
+    new_item = Item.last
+
+    expect(previous_item_name).to_not eq(new_item.name)
+    expect(new_item.name).to eq(item_params[:name])
+    expect(previous_item_unit_price).to_not eq(new_item.unit_price)
+    expect(new_item.unit_price).to eq(item_params[:unit_price])
+    expect(new_item.description).to eq(item_params[:description])
+    expect(previous_item_id).to eq(new_item.merchant_id)
+  end
+
+  describe 'sad paths' do
+    it "will gracefully handle if an item id doesn't exist" do
+
+      get '/api/v1/items/1'
+
+      expect(response).to_not be_successful
+      expect(response.status).to eq(404)
+
+      data = JSON.parse(response.body, symbolize_names: true)
+
+      expect(data[:errors]).to be_a(Array)
+      expect(data[:errors].first[:status]).to eq('404')
+      expect(data[:errors].first[:title]).to eq("Couldn't find Item with 'id'=1")
+    end
+
+    it "will handle an incomplete form" do
+      merch = create(:merchant)
+      item_1 = create(:item, merchant_id: merch.id)
+      id = item_1.id
+  
+      item_params = {
+        name: '',
+        description: '5.5kg weights to lift for exercise',
+        unit_price: 3500,
+        merchant_id: merch.id
+        }
+  
+      headerz = { 'CONTENT_TYPE' => 'application/json' }
+  
+      post '/api/v1/items', headers: headerz, params: JSON.generate(item: item_params)
+  
+      expect(response).to_not be_successful
+      expect(response.status).to eq(404)
+    end
+    
+    it "will handle an incomplete updated form" do
+      merch = create(:merchant)
+      item_1 = create(:item, merchant_id: merch.id)
+      id = item_1.id
+  
+      previous_item_name = Item.last.name
+      previous_item_unit_price = Item.last.unit_price
+      previous_item_id = Item.last.merchant_id
+  
+      item_params = {
+        name: '',
+        description: '5.5kg weights to lift for exercise',
+        unit_price: 3500,
+        merchant_id: merch.id
+        }
+  
+      headerz = { 'CONTENT_TYPE' => 'application/json' }
+  
+      put "/api/v1/items/#{id}", headers: headerz, params: JSON.generate(item: item_params)
+  
+      expect(response).to_not be_successful
+      expect(response.status).to eq(404)
+    end
   end
 end
