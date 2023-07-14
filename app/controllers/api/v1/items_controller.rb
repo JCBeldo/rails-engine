@@ -17,13 +17,21 @@ class Api::V1::ItemsController < ApplicationController
   end
 
   def destroy
-    render json: Item.destroy(params[:id])
+    render(json: Item.destroy(params[:id]), status: 204)
   end
 
   def update
     item = Item.find(params[:id])
     if item.update(item_params)
       render(json: ItemSerializer.new(item), status: 201)
+    else
+      render :status => 404
+    end
+  end
+
+  def search
+    if !params[:name].nil? && response.sent? == false
+      render json: ItemSerializer.new(Item.search(params[:name]).first)
     else
       render :status => 404
     end
